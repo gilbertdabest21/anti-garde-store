@@ -26,7 +26,7 @@ async function loadStorefrontData(){
   const response=await fetch('/api/storefront');if(!response.ok)throw new Error('Storefront API unavailable');
   const data=await response.json(),products=data.products||[],categories=data.categories||[],settings=data.settings||{};
   const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  const money=n=>'NT'+'
+  const money=n=>'NT'+String.fromCharCode(36)+Number(n||0).toLocaleString('en-US');
   const card=p=>'<article class="product">'+(p.image_url?'<img src="'+esc(p.image_url)+'" alt="'+esc(p.name)+'" style="width:100%;aspect-ratio:4/4.5;object-fit:cover">':'<div class="product-art">AG</div>')+'<div class="product-info"><div class="tag">'+esc(p.category||'')+'</div><h3>'+esc(p.name)+'</h3><p class="muted">'+esc(p.description||'')+'</p><strong>'+money(p.price)+'</strong><p class="muted">'+(p.variants||[]).map(v=>esc(v.size)).join(' · ')+'</p></div></article>';
   document.getElementById('categoryNav').innerHTML=categories.map(c=>'<a class="ship" href="#category-'+esc(c.id)+'">'+esc(c.name)+'</a>').join('');
   document.getElementById('newArrivals').innerHTML=products.slice(0,4).map(card).join('')||'<p class="muted">New arrivals coming soon.</p>';
