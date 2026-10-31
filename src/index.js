@@ -42,7 +42,7 @@ export default {async fetch(req,env){
    if(path==='/api/settings'&&req.method==='GET'){const r=await db.prepare('SELECT key,value FROM settings').all();return json({settings:Object.fromEntries((r.results||[]).map(x=>[x.key,x.value]))})}
    if(path==='/api/settings'&&req.method==='POST'){const b=await req.json();for(const [k,v] of Object.entries(b)){if(!['free_shipping_threshold','shipping_711','shipping_familymart','shipping_post','hero_image_url','hero_title_en','hero_title_id','hero_title_zh','hero_text_en','hero_text_id','hero_text_zh'].includes(k))continue;await db.prepare('INSERT INTO settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value').bind(k,String(v)).run()}return json({ok:true})}
    return json({error:'API route not found.'},404);
-  }catch(e){return json({error:'Server error.',detail:env.ENVIRONMENT==='development'?String(e):undefined},500)}
+  }catch(e){console.error('ANTI-GARDE admin API error:',e);return json({error:'Server error.',detail:String(e?.message||e)},500)}
  }
  return env.ASSETS?env.ASSETS.fetch(req):new Response('ANTI-GARDE API is running. Configure static assets to serve the storefront.',{status:200});
 }};
