@@ -17,7 +17,7 @@ export default {async fetch(req,env){
    env.DB.prepare("SELECT key,value FROM settings WHERE key IN ('free_shipping_threshold','shipping_711','shipping_familymart','shipping_post','hero_image_url','hero_title_en','hero_title_id','hero_title_zh','hero_text_en','hero_text_id','hero_text_zh')").all()
   ]);
   const products=pr.results||[];
-  for(const p of products){const vr=await env.DB.prepare("SELECT id,sku,size,color,stock,image_url FROM variants WHERE product_id=? ORDER BY size").bind(p.id).all();p.variants=vr.results||[]}
+  for(const p of products){const vr=await env.DB.prepare("SELECT id,product_id,sku,size,color,stock,image_url FROM variants WHERE product_id=? ORDER BY size").bind(p.id).all();p.variants=vr.results||[]}
   return json({products,categories:cr.results||[],pages:pg.results||[],settings:Object.fromEntries((sr.results||[]).map(x=>[x.key,x.value]))});
  }
  if(path==='/api/checkout'&&req.method==='POST'){
