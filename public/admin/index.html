@@ -33,14 +33,17 @@ zh:{
 }};
 const adminEn = Object.fromEntries(Object.entries(adminDict.id).map(([en,id])=>[id,en]));
 const adminZhEn = Object.fromEntries(Object.entries(adminDict.zh).map(([en,zh])=>[zh,en]));
+let activeAdminLanguage='en';
 function applyAdminLanguage(lang){
- const map=lang==='id'?adminDict.id:lang==='zh'?adminDict.zh:null;
- const reverse=lang==='id'?Object.fromEntries(Object.entries(adminDict.id).map(([a,b])=>[b,a])):lang==='zh'?adminZhEn:null;
+ const dictionaries={en:null,id:adminDict.id,zh:adminDict.zh};
+ const current=dictionaries[activeAdminLanguage];
+ const reverse=current?Object.fromEntries(Object.entries(current).map(([en,translated])=>[translated,en])):null;
+ const target=dictionaries[lang];
  document.documentElement.lang=lang==='zh'?'zh-Hant':lang;
  const walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);
- let node;while(node=walker.nextNode()){const raw=node.nodeValue,trim=raw.trim();if(!trim)continue;const original=reverse?.[trim]||trim;const translated=map?.[original]||original;if(translated!==trim)node.nodeValue=raw.replace(trim,translated)}
- document.querySelectorAll('input[placeholder],textarea[placeholder]').forEach(el=>{const original=reverse?.[el.placeholder]||el.placeholder;if(map?.[original])el.placeholder=map[original]});
- localStorage.setItem('ag-admin-language',lang);
+ let node;while(node=walker.nextNode()){const raw=node.nodeValue,trim=raw.trim();if(!trim)continue;const original=reverse?.[trim]||trim;const translated=target?.[original]||original;if(translated!==trim)node.nodeValue=raw.replace(trim,translated)}
+ document.querySelectorAll('input[placeholder],textarea[placeholder]').forEach(el=>{const original=reverse?.[el.placeholder]||el.placeholder;if(target?.[original])el.placeholder=target[original]});
+ activeAdminLanguage=lang;localStorage.setItem('ag-admin-language',lang);
 }
 const langSelect=document.getElementById('adminLanguage');
 langSelect.value=localStorage.getItem('ag-admin-language')||'en';
