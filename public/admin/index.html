@@ -17,7 +17,8 @@ $('products').innerHTML=p.products.length?'<table><tr><th>Product / SKU</th><th>
 $('orders').innerHTML=o.orders.length?'<table><tr><th>Order</th><th>Customer</th><th>Total</th><th>Payment</th><th>Status</th></tr>'+o.orders.map(x=>'<tr><td>'+esc(x.id.slice(0,8))+'</td><td>'+esc(x.customer_name)+'</td><td>'+money(x.total)+'</td><td>'+esc(x.payment_method)+' / '+esc(x.payment_status)+'</td><td>'+esc(x.order_status)+'</td></tr>').join('')+'</table>':'No orders yet.';
 $('threshold').value=s.settings.free_shipping_threshold||500;$('fee711').value=s.settings.shipping_711||60;$('feeFm').value=s.settings.shipping_familymart||60;$('feePost').value=s.settings.shipping_post||80}
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-window.editProduct=async(id,name,price,cost)=>{const n=prompt('Product name:',name);if(n===null)return;const p=prompt('Selling price (NT$):',price);if(p===null)return;const c=prompt('Unit cost (NT$):',cost);if(c===null)return;try{await api('/products/'+id,'PATCH',{name:n,price:Number(p),cost:Number(c)});await refresh()}catch(e){alert(e.message)}};\nwindow.adjust=async id=>{const n=prompt('Stock change (use +5 or -2):');if(n===null)return;try{await api('/variants/'+id+'/stock','POST',{change:Number(n),reason:'admin_adjustment'});await refresh()}catch(e){alert(e.message)}};
+window.editProduct=async(id,name,price,cost)=>{const n=prompt('Product name:',name);if(n===null)return;const p=prompt('Selling price (NT$):',price);if(p===null)return;const c=prompt('Unit cost (NT$):',cost);if(c===null)return;try{await api('/products/'+id,'PATCH',{name:n,price:Number(p),cost:Number(c)});await refresh()}catch(e){alert(e.message)}};
+window.adjust=async id=>{const n=prompt('Stock change (use +5 or -2):');if(n===null)return;try{await api('/variants/'+id+'/stock','POST',{change:Number(n),reason:'admin_adjustment'});await refresh()}catch(e){alert(e.message)}};
 $('loginBtn').onclick=async()=>{try{await api('/auth/login','POST',{password:$('password').value});$('loginMsg').textContent='Signed in.';await boot()}catch(e){$('loginMsg').textContent=e.message}};
 $('logout').onclick=async()=>{await api('/auth/logout','POST',{});location.reload()};
 $('addProduct').onclick=async()=>{try{await api('/products','POST',{name:$('pname').value,price:+$('price').value,cost:+$('cost').value,image_url:$('image').value,description:$('desc').value,variants:[{size:$('size').value||'One Size',sku:$('sku').value,stock:+$('stock').value}]});$('productMsg').textContent='Product added.';await refresh()}catch(e){$('productMsg').textContent=e.message}};
@@ -51,5 +52,6 @@ langSelect.addEventListener('change',()=>applyAdminLanguage(langSelect.value));
 const adminObserver=new MutationObserver(()=>applyAdminLanguage(langSelect.value));
 adminObserver.observe(document.body,{childList:true,subtree:true,characterData:true});
 applyAdminLanguage(langSelect.value);
-\nboot();
+
+boot();
 </script></body></html>
