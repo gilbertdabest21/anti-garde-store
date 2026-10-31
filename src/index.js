@@ -20,6 +20,29 @@ export default {async fetch(req,env){
   for(const p of products){const vr=await env.DB.prepare("SELECT id,sku,size,color,stock,image_url FROM variants WHERE product_id=? ORDER BY size").bind(p.id).all();p.variants=vr.results||[]}
   return json({products,categories:cr.results||[],pages:pg.results||[],settings:Object.fromEntries((sr.results||[]).map(x=>[x.key,x.value]))});
  }
+ if(path==='/api/checkout'&&req.method==='POST'){
+  const db=env.DB;if(!db)return json({error:'Store database is unavailable.'},503);
+  let b;try{b=await req.json()}catch{return json({error:'Invalid checkout request.'},400)}
+  const name=String(b.customer_name||'').trim(),phone=String(b.phone||'').trim(),email=String(b.email||'').trim(),shipping=String(b.shipping_method||'').trim(),delivery=String(b.delivery_details||'').trim(),notes=String(b.notes||'').trim();
+  if(!name||name.length>100||!phone||phone.length>30||email.length>150||!delivery||delivery.length>1000||notes.length>1000)return json({error:'Please complete your name, phone and delivery details.'},400);
+  if(!['7-ELEVEN store-to-store','FamilyMart store-to-store','Taiwan Post home delivery'].includes(shipping))return json({error:'Please choose a supported delivery method.'},400);
+  if(!Array.isArray(b.items)||!b.items.length||b.items.length>20)return json({error:'Your cart is empty or contains too many different items.'},400);
+  const grouped=new Map();for(const item of b.items){const id=String(item.variant_id||'');const qty=Number(item.quantity);if(!id||!Number.isInteger(qty)||qty<1||qty>20)return json({error:'Invalid product option or quantity.'},400);grouped.set(id,(grouped.get(id)||0)+qty)}
+  if([...grouped.values()].some(q=>q>20))return json({error:'Maximum 20 units per option.'},400);
+  const items=[];for(const [id,quantity] of grouped){const row=await db.prepare('SELECT v.id,v.sku,v.size,v.color,v.stock,v.product_id,p.name,p.price,p.cost FROM variants v JOIN products p ON p.id=v.product_id WHERE v.id=? AND p.active=1').bind(id).first();if(!row)return json({error:'A selected product option is no longer available. Please refresh the page.'},409);if(row.stock<quantity)return json({error:'Not enough stock for '+row.name+' ('+[row.color,row.size].filter(Boolean).join(' / ')+'). Please update your cart.'},409);items.push({...row,quantity})}
+  const subtotal=items.reduce((sum,x)=>sum+x.price*x.quantity,0);
+  const settings=await db.prepare("SELECT key,value FROM settings WHERE key IN ('free_shipping_threshold','shipping_711','shipping_familymart','shipping_post')").all();
+  const cfg=Object.fromEntries((settings.results||[]).map(x=>[x.key,Number(x.value)]));
+  const threshold=Number.isFinite(cfg.free_shipping_threshold)?cfg.free_shipping_threshold:500;
+  const fee=subtotal>=threshold?0:(shipping.startsWith('7-ELEVEN')?(cfg.shipping_711||60):shipping.startsWith('FamilyMart')?(cfg.shipping_familymart||60):(cfg.shipping_post||80));
+  const orderId=uid(),changed=[];
+  try{
+   for(const item of items){const result=await db.prepare('UPDATE variants SET stock=stock-? WHERE id=? AND stock>=?').bind(item.quantity,item.id,item.quantity).run();if(!result.meta||result.meta.changes!==1)throw new Error('Stock changed while checking out. Please refresh your cart.');changed.push(item)}
+   await db.prepare("INSERT INTO orders(id,customer_name,phone,email,payment_method,payment_status,shipping_method,shipping_fee,subtotal,discount,total,order_status,notes) VALUES(?,?,?,?,?,'pending',?,?,?,0,?,'pending',?)").bind(orderId,name,phone,email,'bank_transfer',shipping,fee,subtotal,subtotal+fee,('Delivery: '+delivery+(notes?' | Notes: '+notes:''))).run();
+   for(const item of items){await db.prepare('INSERT INTO order_items(id,order_id,variant_id,product_name,sku,size,quantity,unit_price,unit_cost) VALUES(?,?,?,?,?,?,?,?,?)').bind(uid(),orderId,item.id,item.name,item.sku,item.size,item.quantity,item.price,item.cost).run();await db.prepare('INSERT INTO inventory_movements(id,variant_id,change_qty,reason,note) VALUES(?,?,?,?,?)').bind(uid(),item.id,-item.quantity,'order', 'Pending bank-transfer order '+orderId).run()}
+   return json({ok:true,order_id:orderId,total:subtotal+fee,shipping_fee:fee,payment_method:'bank_transfer'},201);
+  }catch(e){for(const item of changed){try{await db.prepare('UPDATE variants SET stock=stock+? WHERE id=?').bind(item.quantity,item.id).run()}catch{}}try{await db.prepare('DELETE FROM orders WHERE id=?').bind(orderId).run()}catch{}console.error('ANTI-GARDE checkout error:',e);return json({error:e.message||'Could not place order. Please try again.'},409)}
+ }
  if(path.startsWith('/api/')){
   if(path==='/api/auth/login'&&req.method==='POST'){if(!env.ADMIN_PASSWORD||!env.SESSION_SECRET)return json({error:'Admin secrets are not configured.'},503);const b=await req.json();if(!b.password||b.password!==env.ADMIN_PASSWORD)return json({error:'Incorrect password.'},401);const t=await token(env.SESSION_SECRET);return new Response(JSON.stringify({ok:true}),{headers:{'content-type':'application/json','set-cookie':'ag_session='+t+'; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=28800'}})}
   if(path==='/api/auth/logout')return new Response(JSON.stringify({ok:true}),{headers:{'content-type':'application/json','set-cookie':'ag_session=; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=0'}});
