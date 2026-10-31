@@ -26,7 +26,24 @@ async function loadStorefrontData(){
   const response=await fetch('/api/storefront');if(!response.ok)throw new Error('Storefront API unavailable');
   const data=await response.json(),products=data.products||[],categories=data.categories||[],settings=data.settings||{};
   const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  const money=n=>'NT+Number(n||0).toLocaleString('en-US');
+  const money=n=>'NT'+'
+  const card=p=>'<article class="product">'+(p.image_url?'<img src="'+esc(p.image_url)+'" alt="'+esc(p.name)+'" style="width:100%;aspect-ratio:4/4.5;object-fit:cover">':'<div class="product-art">AG</div>')+'<div class="product-info"><div class="tag">'+esc(p.category||'')+'</div><h3>'+esc(p.name)+'</h3><p class="muted">'+esc(p.description||'')+'</p><strong>'+money(p.price)+'</strong><p class="muted">'+(p.variants||[]).map(v=>esc(v.size)).join(' · ')+'</p></div></article>';
+  document.getElementById('categoryNav').innerHTML=categories.map(c=>'<a class="ship" href="#category-'+esc(c.id)+'">'+esc(c.name)+'</a>').join('');
+  document.getElementById('newArrivals').innerHTML=products.slice(0,4).map(card).join('')||'<p class="muted">New arrivals coming soon.</p>';
+  document.getElementById('categorySections').innerHTML=categories.map(c=>{const list=products.filter(p=>p.category===c.name);return list.length?'<section class="section" id="category-'+esc(c.id)+'"><h2>'+esc(c.name)+'</h2><div class="grid">'+list.map(card).join('')+'</div></section>':''}).join('');
+  document.getElementById('public711').textContent=money(settings.shipping_711||60);
+  document.getElementById('publicFm').textContent=money(settings.shipping_familymart||60);
+  document.getElementById('publicPost').textContent=money(settings.shipping_post||80);
+  document.getElementById('publicThreshold').textContent='Free shipping threshold: '+money(settings.free_shipping_threshold||500);
+  const nav=document.querySelector('header nav');
+  (data.pages||[]).forEach(p=>{const a=document.createElement('a');a.href='#promo-'+p.id;a.textContent=p.menu_label;nav.appendChild(a)});
+  const pages=(data.pages||[]).map(p=>'<section class="section" id="promo-'+esc(p.id)+'"><div class="kicker">CAMPAIGN</div><h2>'+esc(p.title)+'</h2><p class="muted">'+esc(p.description)+'</p><p class="muted">'+esc(p.body).replace(/\n/g,'<br>')+'</p></section>').join('');
+  document.querySelector('main').insertAdjacentHTML('beforeend',pages);
+  Object.assign(homepageOverrides,settings);if(settings.hero_image_url)document.querySelector('.hero').style.backgroundImage='linear-gradient(90deg,rgba(9,11,10,.88),rgba(9,11,10,.35)),url("'+settings.hero_image_url.replace(/"/g,'%22')+'")';applyHomepageOverrides();
+ }catch(error){console.error(error)}
+}
+loadStorefrontData();
+</script></body></html>+Number(n||0).toLocaleString('en-US');
   const card=p=>'<article class="product">'+(p.image_url?'<img src="'+esc(p.image_url)+'" alt="'+esc(p.name)+'" style="width:100%;aspect-ratio:4/4.5;object-fit:cover">':'<div class="product-art">AG</div>')+'<div class="product-info"><div class="tag">'+esc(p.category||'')+'</div><h3>'+esc(p.name)+'</h3><p class="muted">'+esc(p.description||'')+'</p><strong>'+money(p.price)+'</strong><p class="muted">'+(p.variants||[]).map(v=>esc(v.size)).join(' · ')+'</p></div></article>';
   document.getElementById('categoryNav').innerHTML=categories.map(c=>'<a class="ship" href="#category-'+esc(c.id)+'">'+esc(c.name)+'</a>').join('');
   document.getElementById('newArrivals').innerHTML=products.slice(0,4).map(card).join('')||'<p class="muted">New arrivals coming soon.</p>';
