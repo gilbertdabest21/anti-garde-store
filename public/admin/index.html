@@ -69,5 +69,9 @@ const adminObserver=new MutationObserver(()=>applyAdminLanguage(langSelect.value
 adminObserver.observe(document.body,{childList:true,subtree:true,characterData:true});
 applyAdminLanguage(langSelect.value);
 
+
+$('saveContact').addEventListener('click',async()=>{const button=$('saveContact'),msg=$('contactMsg');button.disabled=true;msg.textContent='Saving…';try{await api('/settings','POST',{support_whatsapp:$('supportWhatsapp').value.trim(),support_line:$('supportLine').value.trim(),support_email:$('supportEmail').value.trim(),support_phone:$('supportPhone').value.trim(),social_tiktok:$('socialTiktok').value.trim(),social_facebook:$('socialFacebook').value.trim(),social_instagram:$('socialInstagram').value.trim(),about_statement_id:$('aboutId').value.trim(),about_statement_en:$('aboutEn').value.trim(),about_statement_zh:$('aboutZh').value.trim()});msg.textContent='Saved. Refresh the storefront to see your updated links.'}catch(e){msg.textContent='Save failed: '+e.message}finally{button.disabled=false}});
+$('saveSettings').addEventListener('click',async()=>{const button=$('saveSettings');button.disabled=true;try{await api('/settings','POST',{free_shipping_threshold:$('threshold').value,shipping_711:$('fee711').value,shipping_familymart:$('feeFm').value,shipping_post:$('feePost').value});alert('Shipping settings saved.')}catch(e){alert('Save failed: '+e.message)}finally{button.disabled=false}});
+
 boot();
 </script></body></html>
