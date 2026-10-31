@@ -10,4 +10,4 @@ run_worker_first = ["/api/*"]
 [[d1_databases]]
 binding = "DB"
 database_name = "anti-garde-db"
-database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"
+database_id = "7bb2c21b-4dd0-4f95-a55d-fbbf5e5faa49"
